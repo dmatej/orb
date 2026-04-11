@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Contributors to the Eclipse Foundation
+ * Copyright (c) 2025, 2026 Contributors to the Eclipse Foundation
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -34,13 +34,13 @@ module org.glassfish.corba.orb {
     requires org.glassfish.pfl.tf;
 
     requires osgi.core;
-
     exports com.sun.corba.ee.impl.ior;
     exports com.sun.corba.ee.impl.javax.rmi;
     exports com.sun.corba.ee.impl.javax.rmi.CORBA;
     exports com.sun.corba.ee.impl.legacy.connection;
     exports com.sun.corba.ee.impl.orb;
     exports com.sun.corba.ee.impl.util;
+    exports com.sun.corba.ee.spi.ior;
     exports com.sun.corba.ee.spi.ior.iiop;
     exports com.sun.corba.ee.spi.transport;
 
