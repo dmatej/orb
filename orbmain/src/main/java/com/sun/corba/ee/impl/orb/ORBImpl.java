@@ -95,6 +95,7 @@ import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.reflect.Constructor;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -1738,21 +1739,26 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
         return serviceContextsCache;
     }
 
-    // XXX All of the isLocalYYY checking needs to be revisited.
-    // First of all, all three of these methods are called from
-    // only one place in impl.ior.IORImpl.  Second, we have problems
-    // both with multi-homed hosts and with multi-profile IORs.
-    // A possible strategy: like the LocalClientRequestDispatcher, we need
-    // to determine this more abstractly at the ContactInfo level.
-    // This level should probably just get the CorbaContactInfoList from
-    // the IOR, then iterator over ContactInfo.  If any ContactInfo is
-    // local, the IOR is local, and we can pick one to create the
-    // LocalClientRequestDispatcher as well.  Bottom line: this code needs to move.
     @Override
-    public boolean isLocalHost( String hostName )
-    {
-        return hostName.equals( configData.getORBServerHost() ) ||
-            hostName.equals( getLocalHostName() ) ;
+    public boolean isLocalHost(String hostName) {
+        try {
+            return hostName.equals(configData.getORBServerHost())
+                || hostName.equals(getLocalHostName())
+                || isLocalHost(InetAddress.getByName(hostName));
+        } catch (UnknownHostException e) {
+            return false;
+        }
+    }
+
+    public boolean isLocalHost(InetAddress address) {
+        if (address.isLoopbackAddress()) {
+            return true;
+        }
+        String ip = address.getHostAddress();
+        if (ip == null) {
+            return false;
+        }
+        return ip.equals(configData.getORBServerHost()) || ip.equals(getLocalHostName());
     }
 
     @Override
@@ -1790,16 +1796,6 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
         }
     }
 
-    /*************************************************************************
-     *  The following public methods are for ORB shutdown.
-     *************************************************************************/
-
-    private String getHostName(String host)
-        throws java.net.UnknownHostException
-    {
-        return InetAddress.getByName( host ).getHostAddress();
-    }
-
     /* keeping a copy of the getLocalHostName so that it can only be called
      * internally and the unauthorized clients cannot have access to the
      * localHost information, originally, the above code was calling
@@ -1813,18 +1809,17 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
      * The above mentioned method has been removed from the connection class
      */
 
-    private static String localHostString = null;
+    private static String localHostString;
 
-    private synchronized String getLocalHostName()
-    {
+    private synchronized String getLocalHostName() {
         if (localHostString == null) {
             try {
-                localHostString = InetAddress.getLocalHost().getHostAddress();
+                localHostString = InetAddress.getLocalHost().getHostName();
             } catch (Exception ex) {
-                throw wrapper.getLocalHostFailed( ex ) ;
+                localHostString = InetAddress.getLoopbackAddress().getHostName();
             }
         }
-        return localHostString ;
+        return localHostString;
     }
 
  /******************************************************************************
