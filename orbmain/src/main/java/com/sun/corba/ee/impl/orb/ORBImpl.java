@@ -92,6 +92,7 @@ import com.sun.org.omg.SendingContext.CodeBase;
 
 import java.applet.Applet;
 import java.io.IOException;
+import java.lang.System.Logger;
 import java.lang.reflect.Constructor;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -107,8 +108,6 @@ import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.rmi.CORBA.ValueHandler;
 
@@ -133,6 +132,7 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.CORBA.portable.ValueFactory;
 
 import static com.sun.corba.ee.spi.misc.ORBConstants.SKIP_GMBAL_INIT;
+import static java.lang.System.Logger.Level.DEBUG;
 
 /**
  * The JavaIDL ORB implementation.
@@ -140,6 +140,7 @@ import static com.sun.corba.ee.spi.misc.ORBConstants.SKIP_GMBAL_INIT;
 @OrbLifeCycle
 @Subcontract
 public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseable {
+    private static final Logger LOG = System.getLogger(ORBImpl.class.getName());
     private boolean set_parameters_called ;
 
     private TransportManager transportManager;
@@ -445,7 +446,7 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
                 try {
                     configurator = Class.forName(cname);
                 } catch (ClassNotFoundException ex) {
-                    Logger.getLogger(ORBImpl.class.getName()).log(Level.FINE, null, ex);
+                    LOG.log(DEBUG, "Failed to load the alternative configurator " + cname, ex);
                 }
             }
         }
@@ -558,6 +559,7 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
         // other configurators with their own parsers to run,
         // using the same DataCollector.
         try {
+            LOG.log(DEBUG, "Asking configurator {0} to configure me.", configurator);
             configurator.configure( dataCollector, this ) ;
         } catch (Exception exc) {
             throw wrapper.orbConfiguratorError( exc ) ;
@@ -628,8 +630,9 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
     }
 
     @Override
-    public void setParameters( String[] params, Properties props ) {
-        set_parameters( params, props ) ;
+    public void setParameters(String[] params, Properties props) {
+        LOG.log(DEBUG, () -> "setParameters(params=" + Arrays.toString(params) + ", props=" + props + ")");
+        set_parameters(params, props);
     }
 
   /* we can't create object adapters inside the ORB init path, or else we'll get this same problem
@@ -1229,11 +1232,10 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
     }
 
     @Override
-    public org.omg.CORBA.Object resolve_initial_references(
-        String identifier) throws InvalidName {
-        Resolver res ;
-
-        synchronized( this ) {
+    public org.omg.CORBA.Object resolve_initial_references(String identifier) throws InvalidName {
+        LOG.log(DEBUG, "resolve_initial_references(identifier={0})", identifier);
+        Resolver res;
+        synchronized (this) {
             checkShutdownState();
             res = resolver ;
         }
@@ -1250,6 +1252,7 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
     @Override
     public void register_initial_reference(
         String id, org.omg.CORBA.Object obj ) throws InvalidName {
+        LOG.log(DEBUG, "register_initial_reference(id={0}, obj={1})", id, obj);
         ServerRequestDispatcher insnd ;
 
         if ((id == null) || (id.length() == 0)) {
@@ -1768,8 +1771,12 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
                  configData.getPersistentServerIdInitialized(), psid ) ;
         }
 
-        if ((subcontractId < ORBConstants.FIRST_POA_SCID) ||
-            (subcontractId > ORBConstants.MAX_POA_SCID)) {
+        LOG.log(DEBUG, "isLocalServerId: params[subcontractId={0}, serverId={1}], mystate[transientServerId={2},"
+            + " persistentServerId={3}, persistentServerIdInitialized={4}]",
+            subcontractId, serverId, getTransientServerId(),
+            configData.getPersistentServerId(), configData.getPersistentServerIdInitialized());
+
+        if (subcontractId < ORBConstants.FIRST_POA_SCID || subcontractId > ORBConstants.MAX_POA_SCID) {
             return serverId == getTransientServerId();
         }
 
