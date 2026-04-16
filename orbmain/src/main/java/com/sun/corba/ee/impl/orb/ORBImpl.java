@@ -1681,8 +1681,8 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
     }
 
     @Override
-    public synchronized void connect(org.omg.CORBA.Object servant)
-    {
+    public synchronized void connect(org.omg.CORBA.Object servant) {
+        LOG.log(DEBUG, "connect(servant={0})", servant);
         checkShutdownState();
         if (getTOAFactory() == null) {
             throw wrapper.noToa();
@@ -1697,8 +1697,8 @@ public class ORBImpl extends com.sun.corba.ee.spi.orb.ORB implements AutoCloseab
     }
 
     @Override
-    public synchronized void disconnect(org.omg.CORBA.Object obj)
-    {
+    public synchronized void disconnect(org.omg.CORBA.Object obj) {
+        LOG.log(DEBUG, "disconnect(obj={0})", obj);
         checkShutdownState();
         if (getTOAFactory() == null) {
             throw wrapper.noToa();
